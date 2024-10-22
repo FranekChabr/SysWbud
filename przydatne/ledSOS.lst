@@ -1,0 +1,207 @@
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 1
+
+
+
+
+
+       MCS-51 Family Macro Assembler   A S E M - 5 1   V 1.3
+       =====================================================
+
+
+
+	Source File:	ledSOS.asm
+	Object File:	ledSOS.hex
+	List File:	ledSOS.lst
+
+
+
+ Line  I  Addr  Code            Source
+
+    1:				; SOS
+    2:		B	 97	LED bit P1.7
+    3:		B      0095	BUZZ equ P1.5
+    4:		N      0064	TIME_MS_SHORT equ 100
+    5:		N      00FF	TIME_MS_LONG equ 255
+    6:
+    7:		N      0000	org 0h
+    8:	  0000	02 00 40		ljmp start
+    9:
+   10:		N      0040	org 40h
+   11:	  0040			start:
+   12:	  0040	11 72			acall short_delay
+   13:
+   14:	  0042	11 60			acall short_blink
+   15:	  0044	11 60			acall short_blink
+   16:	  0046	11 60			acall short_blink
+   17:
+   18:	  0048	11 72			acall short_delay
+   19:
+   20:	  004A	11 69			acall long_blink
+   21:	  004C	11 69		    acall long_blink
+   22:	  004E	11 69		    acall long_blink
+   23:
+   24:	  0050	11 72		    acall short_delay
+   25:
+   26:	  0052	11 60		    acall short_blink
+   27:	  0054	11 60			acall short_blink
+   28:	  0056	11 60			acall short_blink
+   29:
+   30:	  0058	11 7B			acall long_delay
+   31:	  005A	11 7B			acall long_delay
+   32:	  005C	11 7B			acall long_delay
+   33:
+   34:	  005E	80 E0			sjmp start
+   35:
+   36:	  0060			short_blink:
+   37:	  0060	D2 97			setb LED
+   38:	  0062	11 72			acall short_delay
+   39:	  0064	C2 97			clr LED
+   40:	  0066	11 72			acall short_delay
+   41:	  0068	22			ret
+   42:
+   43:	  0069			long_blink:
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 2
+
+
+
+ Line  I  Addr  Code            Source
+
+   44:	  0069	D2 97		    setb LED
+   45:	  006B	11 7B			acall long_delay
+   46:	  006D	C2 97			clr LED
+   47:	  006F	11 7B			acall long_delay
+   48:	  0071	22			ret
+   49:
+   50:	  0072			short_delay:
+   51:	  0072	79 FF			mov R1, #255
+   52:	  0074	7A 64			mov R2, #TIME_MS_SHORT
+   53:	  0076			delay_loop_short:
+   54:	  0076	D9 FE			DJNZ R1, delay_loop_short
+   55:	  0078	DA FC			DJNZ R2, delay_loop_short
+   56:	  007A	22			ret
+   57:
+   58:	  007B			long_delay:
+   59:	  007B	79 FF			mov R1, #255
+   60:	  007D	7A FF			mov R2, #TIME_MS_LONG
+   61:	  007F			delay_loop_long:
+   62:	  007F	D9 FE			DJNZ R1, delay_loop_long
+   63:	  0081	DA FC			DJNZ R2, delay_loop_long
+   64:	  0083	22			ret
+   65:
+   66:
+   67:				end
+
+
+
+
+
+                     register banks used:  ---
+
+                     no errors
+
+
+
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 3
+
+
+
+
+
+	       L I S T   O F   S Y M B O L S
+	       =============================
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+??ASEM_51			  NUMBER    8051
+??VERSION			  NUMBER    0130
+AC				  BIT	      D6
+ACC				  DATA	      E0
+B				  DATA	      F0
+BUZZ				  NUMBER    0095	   3
+CY				  BIT	      D7
+DELAY_LOOP_LONG			  CODE	    007F	  61
+DELAY_LOOP_SHORT		  CODE	    0076	  53
+DPH				  DATA	      83
+DPL				  DATA	      82
+EA				  BIT	      AF
+ES				  BIT	      AC
+ET0				  BIT	      A9
+ET1				  BIT	      AB
+EX0				  BIT	      A8
+EX1				  BIT	      AA
+EXTI0				  CODE	    0003
+EXTI1				  CODE	    0013
+F0				  BIT	      D5
+IE				  DATA	      A8
+IE0				  BIT	      89
+IE1				  BIT	      8B
+INT0				  BIT	      B2
+INT1				  BIT	      B3
+IP				  DATA	      B8
+IT0				  BIT	      88
+IT1				  BIT	      8A
+LED				  BIT	      97	   2
+LONG_BLINK			  CODE	    0069	  43
+LONG_DELAY			  CODE	    007B	  58
+OV				  BIT	      D2
+P				  BIT	      D0
+P0				  DATA	      80
+P1				  DATA	      90
+P2				  DATA	      A0
+P3				  DATA	      B0
+PCON				  DATA	      87
+PS				  BIT	      BC
+PSW				  DATA	      D0
+PT0				  BIT	      B9
+PT1				  BIT	      BB
+PX0				  BIT	      B8
+PX1				  BIT	      BA
+RB8				  BIT	      9A
+RD				  BIT	      B7
+REN				  BIT	      9C
+RESET				  CODE	    0000
+RI				  BIT	      98
+RS0				  BIT	      D3
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 4
+
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+RS1				  BIT	      D4
+RXD				  BIT	      B0
+SBUF				  DATA	      99
+SCON				  DATA	      98
+SHORT_BLINK			  CODE	    0060	  36
+SHORT_DELAY			  CODE	    0072	  50
+SINT				  CODE	    0023
+SM0				  BIT	      9F
+SM1				  BIT	      9E
+SM2				  BIT	      9D
+SP				  DATA	      81
+START				  CODE	    0040	  11
+T0				  BIT	      B4
+T1				  BIT	      B5
+TB8				  BIT	      9B
+TCON				  DATA	      88
+TF0				  BIT	      8D
+TF1				  BIT	      8F
+TH0				  DATA	      8C
+TH1				  DATA	      8D
+TI				  BIT	      99
+TIMER0				  CODE	    000B
+TIMER1				  CODE	    001B
+TIME_MS_LONG			  NUMBER    00FF	   5
+TIME_MS_SHORT			  NUMBER    0064	   4
+TL0				  DATA	      8A
+TL1				  DATA	      8B
+TMOD				  DATA	      89
+TR0				  BIT	      8C
+TR1				  BIT	      8E
+TXD				  BIT	      B1
+WR				  BIT	      B6
