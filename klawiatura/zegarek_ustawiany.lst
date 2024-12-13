@@ -1,0 +1,330 @@
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 1
+
+
+
+
+
+       MCS-51 Family Macro Assembler   A S E M - 5 1   V 1.3
+       =====================================================
+
+
+
+	Source File:	zegarek_ustawiany.asm
+	Object File:	zegarek_ustawiany.hex
+	List File:	zegarek_ustawiany.lst
+
+
+
+ Line  I  Addr  Code            Source
+
+    1:				;
+    2:				;obs³uga wyœwietlacza 7 segmentowego
+    3:				;
+    4:
+    5:		N      0030	CSDS equ 30H	;bufor wyboru wskaŸnika 7-segmentowego
+    6:		N      0038	CSDB equ 38H	;bufor danych wskaŸnika 7-segmentowego
+    7:
+    8:		N      007C	KEYB equ 7Ch	;4 ostatnie stany klawiatury
+    9:		N      0075	CZAS equ 75h	;tablica przechowuj¹ca wskazanie zegarka
+   10:		N      0074	SS equ 74h		;sekundy
+   11:		N      0073	MM equ 73h		;
+   12:		N      0072	GG equ 72h		;
+   13:
+   14:		N      0000	org 0
+   15:	  0000	02 00 40		ljmp start
+   16:
+   17:		N      000B	org 0Bh		;procedura obs³ugi przerwania zegarowego
+   18:	  000B	75 8C E7		mov TH0, #231	;¿eby nastêpne przerwanie wyst¹pi³o po 1/1152 sekundy
+   19:	  000E	D2 D5			setb F0		;informujemy o wyst¹pieniu przerwania
+   20:	  0010	32			reti		;wracamy z przerwania
+   21:
+   22:		N      0040	org 40H
+   23:	  0040			start:
+   24:
+   25:					;145026
+   26:
+   27:	  0040	75 74 1A		mov SS, #26
+   28:	  0043	75 73 32		mov MM, #50
+   29:	  0046	75 72 0E		mov GG, #14
+   30:	  0049	90 01 0C		mov DPTR, #wzory     ;adres wzorow do DPTR
+   31:	  004C	11 E1			acall przelicz
+   32:
+   33:	  004E	7F 01			mov R7, #00000001b   ;najmlodszy wyswietlacz do r7
+   34:	  0050	79 75			mov R1, #CZAS        ;adres najmlodszej cyfry w tablicy CZAS do R1
+   35:
+   36:	  0052	7A 80			mov R2, #128	;inicjujemy liczniki na zliczanie do 1152
+   37:	  0054	7B 05			mov R3, #5
+   38:
+   39:	  0056	75 89 70		mov TMOD, #01110000b	;blokujemy TIMER1, TIMER0 w trybie 0
+   40:	  0059	D2 A9			setb ET0			;zgoda na przerwania od TIMER0
+   41:	  005B	D2 AF			setb EA				;globalna zgoda na przerwania
+   42:	  005D	75 8C E7		mov TH0, #231	;¿eby pierwsze przerwanie wyst¹pi³o po 1/1152 sekundy
+   43:	  0060	D2 8C			setb TR0			;zgoda na zliczanie przez TIMER0
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 2
+
+
+
+ Line  I  Addr  Code            Source
+
+   44:
+   45:	  0062	75 7B 20		mov CZAS+6, #00100000b
+   46:
+   47:	  0065			petla:
+   48:	  0065	30 D5 FD		jnb F0, petla	;czekamy na informacjê o wyst¹pieniu przerwania
+   49:	  0068	C2 D5			clr F0			;zapominamy o wyst¹pieniu przerwania
+   50:				;	cpl P1.5		;TUTAJ jestem 1152 razy na sekundê
+   51:
+   52:	  006A	78 38			mov R0, #CSDB  		 ;adres bufora segmentow do R0
+   53:	  006C	E7			mov A, @R1      	 ;aktualna cyfra z CZAS do ACC
+   54:	  006D	09			inc R1          	 ;inkremetuje R1 na potrzeby nastepnego obrotu petli
+   55:	  006E	D2 96			setb P1.6            ;wy³¹czam wyswietlacze ¿eby nie bylo duchow
+   56:				;	movc A, @A+DPTR   	 ;zamieniam cyfre na odpwiadajacy jej wzorek
+   57:	  0070	F2			movx @R0, A    		 ;wysylam wzorek do bufora
+   58:
+   59:	  0071	78 30			mov R0, #CSDS        ;adres bufora wyswietlaczy do R0
+   60:	  0073	EF			mov A,	R7           ;altualny wyswietlacz z r7 do ACC
+   61:	  0074	F2			movx @R0, A          ;wysylam aktualny wyswietlacz
+   62:	  0075	C2 96			clr P1.6             ;wlaczam wyswietlacze
+   63:
+   64:	  0077	A2 B5			mov C, P3.5			;kopiujemy stan klawisza do C
+   65:	  0079	50 02			jnc noKey			;je¿eli klawisz nie jest naciœniêty to pomiñ
+   66:	  007B	42 7C			orl KEYB, A			;zapamiêtujemy naciœniêty klawisz
+   67:
+   68:	  007D			noKey:
+   69:
+   70:	  007D	23			rl A                 ;przesuwam wybrany wyswietlacz o 1 w lewo
+   71:	  007E	30 E7 35		jnb ACC.7, noACC7    ;testuje czy nie minalem wszystkich wyswietlaczy
+   72:	  0081	79 75			mov R1, #CZAS        ;wracamy na pocz¹tek tablicy CZAS
+   73:	  0083	85 7C 7B		mov CZAS+6, KEYB	;poka¿emy stan klawiatury na diodach F1...
+   74:	  0086	E5 7C			mov A, KEYB			;stan klawiatury do akumulatora
+   75:	  0088	60 1E			jz zmiana			;je¿eli nic nie jest naciœniête to pomiñ
+   76:	  008A	B5 7D 1B		cjne A, KEYB+1, zmiana
+   77:	  008D	B5 7E 18		cjne A, KEYB+2, zmiana
+   78:	  0090	B5 7F 02		cjne A, KEYB+3, bezZmiany
+   79:	  0093	80 13			sjmp zmiana
+   80:	  0095			bezZmiany:
+   81:	  0095	B4 04 04		cjne A, #00000100b, niePrawo
+   82:	  0098	11 C3			acall incSSMMGG
+   83:	  009A	80 0C			sjmp zmiana
+   84:	  009C			niePrawo:
+   85:	  009C	B4 10 04		cjne A, #00010000b, nieDol
+   86:	  009F	11 CD			acall incMMGG
+   87:	  00A1	80 05			sjmp zmiana
+   88:	  00A3			nieDol:
+   89:	  00A3	B4 20 02		cjne A, #00100000b, zmiana	;nieLewo
+   90:	  00A6	11 D7			acall incGG
+   91:
+   92:	  00A8			zmiana:
+   93:	  00A8	85 7E 7F		mov KEYB+3, KEYB+2
+   94:	  00AB	85 7D 7E		mov KEYB+2, KEYB+1
+   95:	  00AE	85 7C 7D		mov KEYB+1, KEYB
+   96:	  00B1	75 7C 00		mov KEYB, #0		;¿eby od nowa sk³adaæ stan klawiatury
+   97:	  00B4	74 01			mov A, #00000001b    ;jezeli tak to wracam na najmlodszy bit
+   98:
+   99:	  00B6			noACC7:
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 3
+
+
+
+ Line  I  Addr  Code            Source
+
+  100:	  00B6	FF			mov R7, A            ;zapamietuje nowowybrany wyswietlacz w R7
+  101:
+  102:	  00B7	DA AC			djnz R2, petla	;zliczamy przerwania do 1152
+  103:	  00B9	DB AA			djnz R3, petla
+  104:				;	cpl P1.7		;TUTAJ jestem 1 raz na sekundê
+  105:	  00BB	7A 80			mov R2, #128	;reinicjujemy liczniki na zliczanie do 1152
+  106:	  00BD	7B 05			mov R3, #5
+  107:
+  108:	  00BF	11 C3			acall incSSMMGG
+  109:	  00C1	01 65		   	ajmp petla
+  110:
+  111:	  00C3			incSSMMGG:
+  112:	  00C3	05 74			inc SS
+  113:	  00C5	E5 74			mov A, SS
+  114:	  00C7	B4 3C 17		cjne A, #60, nie60
+  115:	  00CA	75 74 00		mov SS, #00
+  116:	  00CD			incMMGG:
+  117:	  00CD	05 73			inc MM
+  118:	  00CF	E5 73			mov A, MM
+  119:	  00D1	B4 3C 0D		cjne A, #60, nie60
+  120:	  00D4	75 73 00		mov MM, #00
+  121:	  00D7			incGG:
+  122:	  00D7	05 72			inc GG
+  123:	  00D9	E5 72			mov A, GG
+  124:	  00DB	B4 18 03		cjne A, #24, nie60
+  125:	  00DE	75 72 00		mov GG, #00
+  126:	  00E1			nie60:
+  127:				;	acall przelicz
+  128:				;	ret
+  129:
+  130:	  00E1			przelicz:
+  131:	  00E1	E5 74			mov A, SS
+  132:	  00E3	75 F0 0A		mov B, #10
+  133:	  00E6	84			div AB
+  134:	  00E7	93			movc A, @A+DPTR	;zamiana 10tek sekund na odp wzorek
+  135:	  00E8	F5 76			mov CZAS+1, A	;wzorek na swoje miejsce w tablicy CZAS
+  136:	  00EA	E5 F0			mov A, B
+  137:	  00EC	93			movc A, @A+DPTR	;zamiana jednostek sekund na odp wzorek
+  138:	  00ED	F5 75			mov CZAS+0, A
+  139:
+  140:	  00EF	E5 73			mov A, MM
+  141:	  00F1	75 F0 0A		mov B, #10
+  142:	  00F4	84			div AB
+  143:	  00F5	93			movc A, @A+DPTR	;zamiana 10tek minut na odp wzorek
+  144:	  00F6	F5 78			mov CZAS+3, A
+  145:	  00F8	E5 F0			mov A, B
+  146:	  00FA	93			movc A, @A+DPTR	;zamiana jednostek minut na odp wzorek
+  147:	  00FB	F5 77			mov CZAS+2, A
+  148:
+  149:	  00FD	E5 72			mov A, GG
+  150:	  00FF	75 F0 0A		mov B, #10
+  151:	  0102	84			div AB
+  152:	  0103	93			movc A, @A+DPTR	;zamiana 10tek godzin na odp wzorek
+  153:	  0104	F5 7A			mov CZAS+5, A
+  154:	  0106	E5 F0			mov A, B
+  155:	  0108	93			movc A, @A+DPTR	;zamiana jednostek godzin na odp wzorek
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 4
+
+
+
+ Line  I  Addr  Code            Source
+
+  156:	  0109	F5 79			mov CZAS+4, A
+  157:
+  158:	  010B	22			ret
+  159:
+  160:	  010C			wzory:
+  161:	  010C	3F 06 5B 4F	db 00111111b,00000110b,01011011b,01001111b ;0,1,2,3
+  162:	  0110	66 6D 7D 07	db 01100110b,01101101b,01111101b,00000111b ;4,5,6,7
+  163:	  0114	7F 6F 77 7C	db 01111111b,01101111b,01110111b,01111100b ;89,AB
+  164:	  0118	58 5E 79 71	db 01011000b,01011110b,01111001b,01110001b ;cdef
+  165:
+  166:				end
+
+
+
+
+
+                     register banks used:  ---
+
+                     no errors
+
+
+
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 5
+
+
+
+
+
+	       L I S T   O F   S Y M B O L S
+	       =============================
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+??ASEM_51			  NUMBER    8051
+??VERSION			  NUMBER    0130
+AC				  BIT	      D6
+ACC				  DATA	      E0
+B				  DATA	      F0
+BEZZMIANY			  CODE	    0095	  80
+CSDB				  NUMBER    0038	   6
+CSDS				  NUMBER    0030	   5
+CY				  BIT	      D7
+CZAS				  NUMBER    0075	   9
+DPH				  DATA	      83
+DPL				  DATA	      82
+EA				  BIT	      AF
+ES				  BIT	      AC
+ET0				  BIT	      A9
+ET1				  BIT	      AB
+EX0				  BIT	      A8
+EX1				  BIT	      AA
+EXTI0				  CODE	    0003
+EXTI1				  CODE	    0013
+F0				  BIT	      D5
+GG				  NUMBER    0072	  12
+IE				  DATA	      A8
+IE0				  BIT	      89
+IE1				  BIT	      8B
+INCGG				  CODE	    00D7	 121
+INCMMGG				  CODE	    00CD	 116
+INCSSMMGG			  CODE	    00C3	 111
+INT0				  BIT	      B2
+INT1				  BIT	      B3
+IP				  DATA	      B8
+IT0				  BIT	      88
+IT1				  BIT	      8A
+KEYB				  NUMBER    007C	   8
+MM				  NUMBER    0073	  11
+NIE60				  CODE	    00E1	 126
+NIEDOL				  CODE	    00A3	  88
+NIEPRAWO			  CODE	    009C	  84
+NOACC7				  CODE	    00B6	  99
+NOKEY				  CODE	    007D	  68
+OV				  BIT	      D2
+P				  BIT	      D0
+P0				  DATA	      80
+P1				  DATA	      90
+P2				  DATA	      A0
+P3				  DATA	      B0
+PCON				  DATA	      87
+PETLA				  CODE	    0065	  47
+PRZELICZ			  CODE	    00E1	 130
+PS				  BIT	      BC
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 6
+
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+PSW				  DATA	      D0
+PT0				  BIT	      B9
+PT1				  BIT	      BB
+PX0				  BIT	      B8
+PX1				  BIT	      BA
+RB8				  BIT	      9A
+RD				  BIT	      B7
+REN				  BIT	      9C
+RESET				  CODE	    0000
+RI				  BIT	      98
+RS0				  BIT	      D3
+RS1				  BIT	      D4
+RXD				  BIT	      B0
+SBUF				  DATA	      99
+SCON				  DATA	      98
+SINT				  CODE	    0023
+SM0				  BIT	      9F
+SM1				  BIT	      9E
+SM2				  BIT	      9D
+SP				  DATA	      81
+SS				  NUMBER    0074	  10
+START				  CODE	    0040	  23
+T0				  BIT	      B4
+T1				  BIT	      B5
+TB8				  BIT	      9B
+TCON				  DATA	      88
+TF0				  BIT	      8D
+TF1				  BIT	      8F
+TH0				  DATA	      8C
+TH1				  DATA	      8D
+TI				  BIT	      99
+TIMER0				  CODE	    000B
+TIMER1				  CODE	    001B
+TL0				  DATA	      8A
+TL1				  DATA	      8B
+TMOD				  DATA	      89
+TR0				  BIT	      8C
+TR1				  BIT	      8E
+TXD				  BIT	      B1
+WR				  BIT	      B6
+WZORY				  CODE	    010C	 160
+ZMIANA				  CODE	    00A8	  92
